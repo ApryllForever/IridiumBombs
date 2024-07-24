@@ -59,7 +59,7 @@ namespace IridiumBombs
         private static void CanBePlacedHere_Postfix(StardewValley.Object __instance, GameLocation l, Vector2 tile, ref bool __result)
         {
 
-            if (!__instance.Name.Contains(IridiumBomb, StringComparison.OrdinalIgnoreCase)|| !__instance.Name.Contains(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
+            if (!__instance.Name.Equals(IridiumBomb, StringComparison.OrdinalIgnoreCase) || !__instance.Name.Equals(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
             {
                 return;
             }
@@ -83,7 +83,7 @@ namespace IridiumBombs
         {
             Vector2 placementTile = new Vector2(x, y);
 
-            if (!__instance.Name.Contains(IridiumBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
+            if (!__instance.Name.Equals(IridiumBomb, StringComparison.OrdinalIgnoreCase) && !__instance.Name.Equals(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -212,15 +212,24 @@ namespace IridiumBombs
             int idNum;
             idNum = Game1.random.Next();
             location.playSound("thudStep");
-            Game1.Multiplayer.broadcastSprites(location, new TemporaryAnimatedSprite(iridiumBomb.ParentSheetIndex, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
+
+
+            TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(16, 16, 0, 160), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
             {
+                initialParentTileIndex = 80, // this doesnt seem to matter, just need not 0
+                currentParentTileIndex = 80,
+                Parent = location,
+                bombRadius = 5,
                 shakeIntensity = 0.5f,
                 shakeIntensityChange = 0.002f,
-                bombRadius = 73,
-                bombDamage = 9999,
                 extraInfoForEndBehavior = idNum,
                 endFunction = location.removeTemporarySpritesWithID
-            });
+            };
+            bombSprite.position.X = (int)bombSprite.position.X;
+            bombSprite.position.Y = (int)bombSprite.position.Y;
+            Game1.Multiplayer.broadcastSprites(location, bombSprite);
+
+
             Game1.Multiplayer.broadcastSprites(location, new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: false, (float)(y + 7) / 10000f, 0f, Color.Yellow, 4f, 0f, 0f, 0f)
             {
                 id = idNum
@@ -241,6 +250,96 @@ namespace IridiumBombs
 
             return true;
         }
+
+
+
+
+
+
+        /*
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(16, 32, 16, 16), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
+{
+    initialParentTileIndex = 18, // this doesnt seem to matter, just need not 0
+    currentParentTileIndex = 18,
+    Parent = location,
+    bombRadius = 9,
+    shakeIntensity = 0.5f,
+    shakeIntensityChange = 0.002f,
+    extraInfoForEndBehavior = idNum,
+    endFunction = location.removeTemporarySpritesWithID
+};
+bombSprite.position.X = (int)bombSprite.position.X;
+bombSprite.position.Y = (int)bombSprite.position.Y;
+Game1.Multiplayer.broadcastSprites(location, bombSprite);
+
+        TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(16, 16, 0, 160), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
+{
+    initialParentTileIndex = 80, // this doesnt seem to matter, just need not 0
+    currentParentTileIndex = 80,
+    Parent = location,
+    bombRadius = 5,
+    shakeIntensity = 0.5f,
+    shakeIntensityChange = 0.002f,
+    extraInfoForEndBehavior = idNum,
+    endFunction = location.removeTemporarySpritesWithID
+};
+bombSprite.position.X = (int)bombSprite.position.X;
+bombSprite.position.Y = (int)bombSprite.position.Y;
+Game1.Multiplayer.broadcastSprites(location, bombSprite);
+
+
+
+
+
+
+
+        */
+
+
+
+
+
+
+
 
 
 
