@@ -59,17 +59,14 @@ namespace IridiumBombs
         private static void CanBePlacedHere_Postfix(StardewValley.Object __instance, GameLocation l, Vector2 tile, ref bool __result)
         {
 
-            if (!__instance.Name.Equals(IridiumBomb, StringComparison.OrdinalIgnoreCase) || !__instance.Name.Equals(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
+            if (!__instance.Name.Equals(IridiumBomb, StringComparison.OrdinalIgnoreCase) && !__instance.Name.Equals(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
             {
                 return;
             }
             else
             {
 
-                if ((!l.isTilePlaceable
-
-
-                    (tile, true) || l.isTileOccupiedByFarmer(tile) != null))
+                if ((!l.isTilePlaceable(tile, true) || l.isTileOccupiedByFarmer(tile) != null))
                 {
                     __result = true;
                 }
@@ -119,7 +116,7 @@ namespace IridiumBombs
 
         private static void IsPlaceable_Postfix(StardewValley.Object __instance, ref bool __result)
         {
-            if (__instance.Name.Contains(IridiumBomb, StringComparison.OrdinalIgnoreCase) || __instance.Name.Contains(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase))
+            if (__instance.Name.Contains(IridiumBomb, StringComparison.OrdinalIgnoreCase) && __instance.Name.Contains(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase))
             {
                 __result = true;
             }
@@ -149,11 +146,11 @@ namespace IridiumBombs
             location.playSound("thudStep");
 
 
-            TemporaryAnimatedSprite TAS = new TemporaryAnimatedSprite(892, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
+            TemporaryAnimatedSprite TAS = new TemporaryAnimatedSprite(936, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
             {
                // delayBeforeAnimationStart = 0000,
                 bombRadius = 11,
-                bombDamage = 199,
+                bombDamage = 299,
                 shakeIntensity = 1f,
                 shakeIntensityChange = 0.0002f,
                 //color = Color.DarkRed,
@@ -214,7 +211,67 @@ namespace IridiumBombs
             location.playSound("thudStep");
 
 
-            TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(16, 16, 0, 160), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
+            TemporaryAnimatedSprite TAS = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
+            {
+                // delayBeforeAnimationStart = 0000,
+                bombRadius = 7,
+                bombDamage = 99,
+                shakeIntensity = 1f,
+                shakeIntensityChange = 0.0002f,
+                //color = Color.DarkRed,
+                //texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png"),
+                extraInfoForEndBehavior = idNum,
+                endFunction = location.removeTemporarySpritesWithID
+            };
+
+            TemporaryAnimatedSprite TASmojo = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
+            {
+                // delayBeforeAnimationStart = 0000,
+                bombRadius = 7,
+                bombDamage = 99,
+                delayBeforeAnimationStart = 300,
+                shakeIntensity = 1f,
+                shakeIntensityChange = 0.0002f,
+                //color = Color.DarkRed,
+                //texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png"),
+                extraInfoForEndBehavior = idNum,
+                endFunction = location.removeTemporarySpritesWithID
+            };
+
+
+
+            TemporaryAnimatedSprite TAS2 = new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: false, (float)(y + 7) / 10000f, 0f, Color.Yellow, 4f, 0f, 0f, 0f)
+            {
+                id = idNum
+            };
+            TemporaryAnimatedSprite TAS3 = new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: true, (float)(y + 7) / 10000f, 0f, Color.Orange, 4f, 0f, 0f, 0f)
+            {
+                delayBeforeAnimationStart = 100,
+                id = idNum
+            };
+            TemporaryAnimatedSprite TAS4 = new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: false, (float)(y + 7) / 10000f, 0f, Color.White, 3f, 0f, 0f, 0f)
+            {
+                delayBeforeAnimationStart = 200,
+                id = idNum
+            };
+            location.netAudio.StartPlaying("fuse");
+
+            // TAS.texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png");
+            Game1.Multiplayer.broadcastSprites(location, TAS);
+            Game1.Multiplayer.broadcastSprites(location, TASmojo);
+            Game1.Multiplayer.broadcastSprites(location, TAS2);
+
+            Game1.Multiplayer.broadcastSprites(location, TAS3);
+            Game1.Multiplayer.broadcastSprites(location, TAS4);
+
+
+
+
+
+            /* 
+             * Stuff someone wrote for me, does not destroy the Rocks or what not
+             * 
+            TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(0, 160, 16, 16), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
             {
                 initialParentTileIndex = 80, // this doesnt seem to matter, just need not 0
                 currentParentTileIndex = 80,
@@ -228,6 +285,7 @@ namespace IridiumBombs
             bombSprite.position.X = (int)bombSprite.position.X;
             bombSprite.position.Y = (int)bombSprite.position.Y;
             Game1.Multiplayer.broadcastSprites(location, bombSprite);
+            
 
 
             Game1.Multiplayer.broadcastSprites(location, new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: false, (float)(y + 7) / 10000f, 0f, Color.Yellow, 4f, 0f, 0f, 0f)
@@ -244,7 +302,7 @@ namespace IridiumBombs
                 delayBeforeAnimationStart = 200,
                 id = idNum
             });
-            location.netAudio.StartPlaying("fuse");
+            location.netAudio.StartPlaying("fuse"); */
 
 
 
