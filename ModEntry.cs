@@ -14,6 +14,9 @@ using StardewValley.Tools;
 using System.Reflection;
 using static StardewValley.Menus.CoopMenu;
 using Microsoft.Xna.Framework.Graphics;
+using System.Reflection.Emit;
+using StardewValley.Monsters;
+using StardewValley.Enchantments;
 
 namespace IridiumBombs
 {
@@ -25,18 +28,24 @@ namespace IridiumBombs
         internal static IMonitor? ModMonitor { get; set; }
         internal static IModHelper? Helper { get; set; }
 
+        public static ModConfig Config;
+
+        public static bool bombinate;
+
         Texture sapphire;
 
         public override void Entry(IModHelper helper)
         {
 
             var harmony = new Harmony(this.ModManifest.UniqueID);
-
+           
             ModMonitor = Monitor;
             Helper = helper;
 
+            Config = Helper.ReadConfig<ModConfig>();
             sapphire = helper.ModContent.Load<Texture2D>("Assets/Objects.png");
 
+            helper.Events.GameLoop.GameLaunched += OnGameLaunched;
 
             harmony.Patch(
                original: AccessTools.Method(typeof(StardewValley.Object), nameof(StardewValley.Object.canBePlacedHere)),
@@ -52,11 +61,42 @@ namespace IridiumBombs
                original: AccessTools.Method(typeof(StardewValley.Object), nameof(StardewValley.Object.isPlaceable)),
                postfix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.IsPlaceable_Postfix))
             );
+
+            harmony.Patch(
+            original: AccessTools.DeclaredMethod(typeof(Bug), nameof(Bug.takeDamage)),
+            postfix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.BugTakeDamage_Postfix))
+         );
+
+            harmony.Patch(
+    original: AccessTools.Method(typeof(GameLocation), "explode"),
+    transpiler: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.explode_Transpiler)));
         }
 
 
+        private void OnGameLaunched(object sender, StardewModdingAPI.Events.GameLaunchedEventArgs e)
+        {
 
-        private static void CanBePlacedHere_Postfix(StardewValley.Object __instance, GameLocation l, Vector2 tile, ref bool __result)
+            // get Generic Mod Config Menu's API (if it's installed)
+            var configMenu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            if (configMenu is null)
+                return;
+
+            // register mod
+            configMenu.Register(
+                mod: ModManifest,
+                reset: () => Config = new ModConfig(),
+                save: () => Helper.WriteConfig(Config)
+            );
+            configMenu.AddNumberOption(
+                mod: ModManifest,
+                name: () => "Bomb Delay",
+                getValue: () => Config.Delay,
+                setValue: value => Config.Delay = value
+            );
+        }
+
+
+            private static void CanBePlacedHere_Postfix(StardewValley.Object __instance, GameLocation l, Vector2 tile, ref bool __result)
         {
 
             if (!__instance.Name.Equals(IridiumBomb, StringComparison.OrdinalIgnoreCase) && !__instance.Name.Equals(IridiumClusterBomb, StringComparison.OrdinalIgnoreCase) || __instance.bigCraftable.Value)
@@ -127,7 +167,7 @@ namespace IridiumBombs
             Vector2 placementTile = new Vector2(x / 64, y / 64);
 
 
-
+            bombinate = true;
 
             foreach (TemporaryAnimatedSprite temporarySprite2 in location.temporarySprites)
             {
@@ -139,18 +179,37 @@ namespace IridiumBombs
 
             StardewValley.Object iridiumBomb = new StardewValley.Object();
 
-            
+            DelayedAction.functionAfterDelay(delegate
+            {
+                bombinate = true;
+            },
+            1500 + Config.Delay
+            );
+
+
+
 
             int idNum;
             idNum = Game1.random.Next();
             location.playSound("thudStep");
 
 
+            TemporaryAnimatedSprite TASa = new TemporaryAnimatedSprite(936, 100f, 1, 24, placementTile * 64f, flicker: false, flipped: false, location, who)
+            {
+                totalNumberOfLoops =  Config.Delay * 10,
+                shakeIntensity = 1f,
+                shakeIntensityChange = 0.0002f,
+                //color = Color.DarkRed,
+                //texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png"),
+                extraInfoForEndBehavior = idNum,
+                endFunction = location.removeTemporarySpritesWithID
+            };
+
             TemporaryAnimatedSprite TAS = new TemporaryAnimatedSprite(936, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
             {
-               // delayBeforeAnimationStart = 0000,
+                delayBeforeAnimationStart = Config.Delay * 1000,
                 bombRadius = 11,
-                bombDamage = 299,
+                bombDamage = 443, //This is an extremely beautiful prime number
                 shakeIntensity = 1f,
                 shakeIntensityChange = 0.0002f,
                 //color = Color.DarkRed,
@@ -176,6 +235,8 @@ namespace IridiumBombs
             location.netAudio.StartPlaying("fuse");
 
             // TAS.texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png");
+
+            Game1.Multiplayer.broadcastSprites(location, TASa);
             Game1.Multiplayer.broadcastSprites(location, TAS);
 
             Game1.Multiplayer.broadcastSprites(location, TAS2);
@@ -183,11 +244,18 @@ namespace IridiumBombs
             Game1.Multiplayer.broadcastSprites(location, TAS3);
             Game1.Multiplayer.broadcastSprites(location, TAS4);
 
+            DelayedAction.functionAfterDelay(delegate
+            {
+                bombinate = false;
+
+
+            },
+            10000 + Config.Delay
+            );
 
 
 
-
-            return true;
+                return true;
         }
 
 
@@ -205,17 +273,36 @@ namespace IridiumBombs
 
             StardewValley.Object iridiumBomb = new StardewValley.Object();
 
+            DelayedAction.functionAfterDelay(delegate
+            {
+                bombinate = true;
+            },
+            2000 + Config.Delay
+            );
+
+
+
 
             int idNum;
             idNum = Game1.random.Next();
             location.playSound("thudStep");
 
+            TemporaryAnimatedSprite TASa = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: false, flipped: false, location, who)
+            {
+                totalNumberOfLoops =  Config.Delay * 10,
+                shakeIntensity = 1f,
+                shakeIntensityChange = 0.0002f,
+                //color = Color.DarkRed,
+                //texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png"),
+                extraInfoForEndBehavior = idNum,
+                endFunction = location.removeTemporarySpritesWithID
+            };
 
             TemporaryAnimatedSprite TAS = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
             {
-                // delayBeforeAnimationStart = 0000,
+                 delayBeforeAnimationStart =  Config.Delay * 1000,
                 bombRadius = 7,
-                bombDamage = 99,
+                bombDamage = 199,
                 shakeIntensity = 1f,
                 shakeIntensityChange = 0.0002f,
                 //color = Color.DarkRed,
@@ -226,10 +313,11 @@ namespace IridiumBombs
 
             TemporaryAnimatedSprite TASmojo = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
             {
+                //totalNumberOfLoops = 1,
                 // delayBeforeAnimationStart = 0000,
                 bombRadius = 7,
                 bombDamage = 99,
-                delayBeforeAnimationStart = 300,
+                delayBeforeAnimationStart = (Config.Delay * 1000) + 300,
                 shakeIntensity = 1f,
                 shakeIntensityChange = 0.0002f,
                 //color = Color.DarkRed,
@@ -238,6 +326,20 @@ namespace IridiumBombs
                 endFunction = location.removeTemporarySpritesWithID
             };
 
+            TemporaryAnimatedSprite TAScutie = new TemporaryAnimatedSprite(937, 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, location, who)
+            {
+                //totalNumberOfLoops = 1,
+                // delayBeforeAnimationStart = 0000,
+                bombRadius = 7,
+                bombDamage = 99,
+                delayBeforeAnimationStart = (Config.Delay * 1000) + 600,
+                shakeIntensity = 1f,
+                shakeIntensityChange = 0.0002f,
+                //color = Color.DarkRed,
+                //texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png"),
+                extraInfoForEndBehavior = idNum,
+                endFunction = location.removeTemporarySpritesWithID
+            };
 
 
             TemporaryAnimatedSprite TAS2 = new TemporaryAnimatedSprite("LooseSprites\\Cursors", new Microsoft.Xna.Framework.Rectangle(598, 1279, 3, 4), 53f, 5, 9, placementTile * 64f + new Vector2(5f, 0f) * 4f, flicker: true, flipped: false, (float)(y + 7) / 10000f, 0f, Color.Yellow, 4f, 0f, 0f, 0f)
@@ -257,13 +359,22 @@ namespace IridiumBombs
             location.netAudio.StartPlaying("fuse");
 
             // TAS.texture = Helper.ModContent.Load<Texture2D>("Assets/Objects.png");
+            Game1.Multiplayer.broadcastSprites(location, TASa);
             Game1.Multiplayer.broadcastSprites(location, TAS);
             Game1.Multiplayer.broadcastSprites(location, TASmojo);
+            Game1.Multiplayer.broadcastSprites(location, TAScutie);
+
             Game1.Multiplayer.broadcastSprites(location, TAS2);
 
             Game1.Multiplayer.broadcastSprites(location, TAS3);
             Game1.Multiplayer.broadcastSprites(location, TAS4);
 
+            DelayedAction.functionAfterDelay(delegate
+            {
+                bombinate = false;
+            },
+          10000 + Config.Delay
+          );
 
 
 
@@ -315,44 +426,7 @@ namespace IridiumBombs
 
 
         /*
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
+         *
          * 
          * TemporaryAnimatedSprite bombSprite = new("TileSheets\\bobbers", new Rectangle(16, 32, 16, 16), 100f, 1, 24, placementTile * 64f, flicker: true, flipped: false, 1f, 0f, Color.White, 4f, 0f, 0f, 0f)
 {
@@ -385,27 +459,54 @@ bombSprite.position.Y = (int)bombSprite.position.Y;
 Game1.Multiplayer.broadcastSprites(location, bombSprite);
 
 
-
-
-
-
-
         */
 
 
+        public static IEnumerable<CodeInstruction> explode_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            var newCodes = new List<CodeInstruction>();
+            for (int i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode == OpCodes.Stfld && ((FieldInfo)codes[i].operand).Name == "alphaFade") // if at the part of code that sets alphaFade...
+                {
+                    newCodes.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModEntry), nameof(ModEntry.FixAlphaFade)))); // ...intercept before setting and use custom formula
+                }
+                newCodes.Add(codes[i]);
+            }
+            return newCodes.AsEnumerable();
+        }
+        public static float FixAlphaFade(float alphaFade)
+        {
+            return alphaFade < 0.009f ? 0.009f : alphaFade; // if alphaFade is less than for a Mega Bomb, make it equal the Mega Bomb value
+        }
+
+        private static void BugTakeDamage_Postfix(int damage, int xTrajectory, int yTrajectory, bool isBomb, double addedPrecision, Farmer who, Bug __instance, ref int __result)
+        {
+            if (isBomb)
+            {
+                if (bombinate == true)
+                {
+                    int actualDamage = Math.Max(1, damage - __instance.resilience.Value);
+                    __instance.Health -= actualDamage;
+                    __instance.currentLocation.playSound("hitEnemy");
+                    __instance.setTrajectory(xTrajectory / 3, yTrajectory / 3);
+                    if (__instance.isHardModeMonster.Value)
+                    {
+                        __instance.FacingDirection = Math.Abs((__instance.FacingDirection + Game1.random.Next(-1, 2)) % 4);
+                        __instance.Halt();
+                        __instance.setMovingInFacingDirection();
+                    }
+                    if (__instance.Health <= 0)
+                    {
+                        __instance.deathAnimation();
+                    }
 
 
-
-
-
-
-
-
-
-
-
-
-
+                    __result = actualDamage;
+                }
+            }
+        }
 
     }
 }
